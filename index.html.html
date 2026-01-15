@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Champions of Ragnarok — Online</title>
+  <link rel="stylesheet" href="styles_Version3.css" />
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <main id="app">
+    <header class="topbar">
+      <h1>Champions of Ragnarok</h1>
+      <div id="user-area" class="user-area"></div>
+    </header>
+
+    <section id="login-card" class="card center-card">
+      <h2>Sign in with Google</h2>
+      <p class="muted">Sign in to continue as Player or Game Master</p>
+      <button id="btn-google" class="btn primary">Sign in with Google</button>
+      <div id="login-msg" class="muted"></div>
+    </section>
+
+    <section id="app-ui" class="hidden">
+      <nav class="main-nav">
+        <button id="nav-home" class="nav-btn">Home</button>
+        <button id="nav-character" class="nav-btn">Character Sheet</button>
+        <button id="nav-combat" class="nav-btn">Combat</button>
+        <button id="nav-room" class="nav-btn">Room / Table</button>
+        <div id="gm-controls" class="nav-right hidden">
+          <button id="nav-player-sheets" class="nav-btn">Player Sheets</button>
+          <button id="nav-enemy-sheets" class="nav-btn">Enemy Sheets</button>
+          <button id="nav-new-sheet" class="nav-btn">Create New Sheet</button>
+        </div>
+        <button id="btn-signout" class="nav-right btn secondary">Sign out</button>
+      </nav>
+
+      <section id="home-view" class="card view active">
+        <h2>Home</h2>
+        <p>Welcome, <span id="display-name">—</span> (<span id="display-role">—</span>)</p>
+        <div class="home-buttons">
+          <button id="btn-go-character" class="btn">Character Sheet</button>
+          <button id="btn-go-combat" class="btn">Combat</button>
+          <button id="btn-go-room" class="btn">Room / Table</button>
+        </div>
+      </section>
+
+      <!-- CHARACTER SHEET VIEW -->
+      <section id="sheet-view" class="card view hidden">
+        <header class="sheet-top">
+          <nav class="sheet-tabs" id="sheet-tabs">
+            <button data-tab="tab-home" class="tab">Home</button>
+            <button data-tab="tab-identity" class="tab active">Character Sheet</button>
+            <button data-tab="tab-attributes" class="tab">Combat Attributes</button>
+            <button data-tab="tab-valkyrie" class="tab">Valkyrie</button>
+            <button data-tab="tab-stolen" class="tab">Stolen Attacks</button>
+            <button data-tab="tab-elements" class="tab">Elements</button>
+            <button data-tab="tab-helheim" class="tab">Helheim</button>
+            <button data-tab="tab-inventory" class="tab">Inventory</button>
+          </nav>
+          <div class="sheet-actions">
+            <button id="btn-edit-sheet" class="icon-btn">✎</button>
+            <button id="btn-save-sheet" class="btn secondary hidden">Save</button>
+          </div>
+        </header>
+
+        <div id="tab-home" class="tab-panel hidden">
+          <button class="btn secondary" id="sheet-return-home">Return to Home</button>
+        </div>
+
+        <div id="tab-identity" class="tab-panel">
+          <h3>Champion Identity</h3>
+          <div class="grid-2">
+            <label>Champion Name: <input data-field="name" /></label>
+            <label>Player Name: <input data-field="playerName" /></label>
+            <label>Age: <input data-field="age" /></label>
+            <label>Title / Alias: <input data-field="title" /></label>
+            <label>Background: <input data-field="background" /></label>
+            <label>Alignment: <input data-field="alignment" /></label>
+            <label>Weakness: <input data-field="weakness" /></label>
+            <label>Talents: <input data-field="talents" /></label>
+            <label>Redeemer God: <input data-field="redeemer" /></label>
+            <label>Valkyrie (Weapon): <input data-field="valkyrieName" /></label>
+            <label>Valkyrie Form: <input data-field="valkyrieForm" /></label>
+            <label>Current Valkyrie Element: <input data-field="valkyrieElement" /></label>
+            <label>Blessing Granted: <input data-field="blessingText" /></label>
+            <div class="status-row">
+              <div>Current Status:</div>
+              <label><input type="radio" name="status" value="alive" /> Alive</label>
+              <label><input type="radio" name="status" value="dead" /> Dead</label>
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-attributes" class="tab-panel hidden">
+          <h3>Combat Attributes</h3>
+          <table class="attributes">
+            <thead><tr><th>Attribute</th><th>Value</th><th>XP Invested</th><th>Level</th></tr></thead>
+            <tbody>
+              <tr><td>Base Damage</td><td id="show-baseDamage"></td><td id="xp-baseDamage"></td><td id="lvl-baseDamage"></td></tr>
+              <tr><td>Defense (%)</td><td id="show-defense"></td><td id="xp-defense"></td><td id="lvl-defense"></td></tr>
+              <tr><td>Evasion</td><td id="show-evasion"></td><td id="xp-evasion"></td><td id="lvl-evasion"></td></tr>
+              <tr><td>Max Health</td><td id="show-health"></td><td id="xp-health"></td><td id="lvl-health"></td></tr>
+              <tr><td>Current Health</td><td id="show-currentHealth"></td><td>-</td><td>-</td></tr>
+            </tbody>
+          </table>
+
+          <div class="xp-block">
+            <h4>Allocate XP</h4>
+            <select id="xp-choose">
+              <option value="health">Health</option>
+              <option value="baseDamage">Base Damage</option>
+              <option value="defense">Defense</option>
+              <option value="evasion">Evasion</option>
+            </select>
+            <input id="xp-amount" type="number" min="1" value="1" />
+            <button id="btn-apply-xp" class="btn">Apply</button>
+            <div class="muted">Conversions: Health 1XP=+1 HP; BaseDamage 1XP=+1; Defense 1XP=+0.2; Evasion 1XP=+0.05</div>
+          </div>
+        </div>
+
+        <div id="tab-valkyrie" class="tab-panel hidden">
+          <h3>Valkyrie — Living Weapon</h3>
+          <ol>
+            <li>Level 1: <input data-valk="1" /></li>
+            <li>Level 2: <input data-valk="2" /></li>
+            <li>Level 3: <input data-valk="3" /></li>
+            <li>Level 4: <input data-valk="4" /></li>
+            <li>Level 5: <input data-valk="5" /></li>
+          </ol>
+        </div>
+
+        <div id="tab-stolen" class="tab-panel hidden">
+          <h3>Stolen Attacks (limit 5, max 2 Ult)</h3>
+          <div class="stolen">
+            <h4>Common</h4>
+            <label>Name: <input data-stolen-common="1" /></label>
+            <label>Name: <input data-stolen-common="2" /></label>
+            <label>Name: <input data-stolen-common="3" /></label>
+            <h4>Ultimate</h4>
+            <label>Name: <input data-stolen-ult="1" /></label>
+            <label>Description: <input data-stolen-ult-desc="1" /></label>
+            <label>Name: <input data-stolen-ult="2" /></label>
+            <label>Description: <input data-stolen-ult-desc="2" /></label>
+          </div>
+        </div>
+
+        <div id="tab-elements" class="tab-panel hidden">
+          <h3>Elements & Advantages</h3>
+          <label>Current Main Element: <input data-field="mainElement" /></label>
+          <label>Collected Elements: <input data-field="collectedElements" /></label>
+        </div>
+
+        <div id="tab-helheim" class="tab-panel hidden">
+          <h3>Helheim — Death and Return</h3>
+          <label>Number of Deaths: <input data-field="deaths" /></label>
+          <label>Return Seals Obtained: <input data-field="seals" /></label>
+        </div>
+
+        <div id="tab-inventory" class="tab-panel hidden">
+          <h3>Inventory & Relics</h3>
+          <label>Inventory: <textarea data-field="inventory"></textarea></label>
+          <h4>Armor and its attributes</h4>
+          <textarea data-field="armor"></textarea>
+          <h4>Destiny notes & consequences</h4>
+          <textarea data-field="destiny"></textarea>
+        </div>
+      </section>
+
+      <!-- ROOM / TABLE -->
+      <section id="room-view" class="card view hidden">
+        <header class="room-head">
+          <h2>Room / Table</h2>
+          <div>
+            <button id="btn-create-room" class="btn">Create Room</button>
+            <input id="room-join-id" placeholder="Paste invite link or ID" />
+            <button id="btn-join-room" class="btn secondary">Join Room</button>
+          </div>
+        </header>
+
+        <div id="room-area" class="room-area hidden">
+          <div class="room-left">
+            <h3>Room: <span id="room-id-display"></span></h3>
+            <div>GM: <span id="room-gm"></span></div>
+            <div>Players (<span id="room-count">0</span>):</div>
+            <ul id="player-list"></ul>
+
+            <h4>Invite Link</h4>
+            <input id="invite-link" readonly />
+            <button id="btn-copy-invite" class="btn">Copy</button>
+          </div>
+
+          <div class="room-right">
+            <h3>Room Controls</h3>
+            <div id="room-controls"></div>
+            <h4>Combat State</h4>
+            <pre id="room-combat-state" class="muted">—</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMBAT VIEW -->
+      <section id="combat-view" class="card view hidden">
+        <h2>Combat</h2>
+        <div class="combat-grid">
+          <div class="panel">
+            <h4>Attacker</h4>
+            <select id="combat-attacker"></select>
+            <div class="dice-row">
+              <button id="combat-roll-d20" class="btn">Roll 1d20</button>
+              <button id="combat-insert-d20" class="btn secondary">Insert</button>
+              <input id="combat-manual-d20" type="number" min="1" max="20" />
+              <div id="combat-d20" class="dice-value">—</div>
+            </div>
+            <label><input id="combat-elem" type="checkbox" /> Elemental advantage?</label>
+            <div>Multiplier: <span id="combat-mult">1.5</span></div>
+            <div>Raw Damage: <span id="combat-raw">—</span></div>
+            <button id="combat-calc-raw" class="btn">Calculate Raw</button>
+          </div>
+
+          <div class="panel">
+            <h4>Target</h4>
+            <label>Enemy Evasion: <input id="combat-evasion" type="number" value="40" /></label>
+            <label>Enemy Current HP: <input id="combat-hp" type="number" value="100" /></label>
+
+            <h4>Hit Roll (1d100)</h4>
+            <div class="dice-row">
+              <button id="combat-roll-d100" class="btn">Roll 1d100</button>
+              <button id="combat-insert-d100" class="btn secondary">Insert</button>
+              <input id="combat-manual-d100" type="number" min="1" max="100" />
+              <div id="combat-d100" class="dice-value">—</div>
+            </div>
+            <div>Result: <span id="combat-result">—</span></div>
+            <button id="combat-eval" class="btn">Evaluate</button>
+          </div>
+
+          <div class="panel">
+            <h4>Log</h4>
+            <div id="combat-log" class="combat-log muted">—</div>
+          </div>
+        </div>
+
+        <!-- GM Dodge panel -->
+        <div id="combat-gm" class="gm-panel hidden">
+          <h4>GM Dodge Test</h4>
+          <div>Attack Value: <span id="gm-attack-val">—</span></div>
+          <button id="gm-roll-dodge" class="btn">GM Roll 1d100</button>
+          <div>Roll: <span id="gm-roll-val">—</span></div>
+          <div id="gm-out" class="muted"></div>
+          <button id="gm-close" class="btn secondary">Close</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="app_Version3.js"></script>
+</body>
+</html>
