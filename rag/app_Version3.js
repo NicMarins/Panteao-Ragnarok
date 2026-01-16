@@ -1,3 +1,4 @@
+console.log("JS CARREGOU");
 
 /* app.js
    Firebase-based starter for:
